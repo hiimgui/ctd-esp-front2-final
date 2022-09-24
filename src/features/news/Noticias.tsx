@@ -1,133 +1,73 @@
 import { useEffect, useState } from "react";
 import { AssinarImage, CloseButton as Close } from "../../assets";
 import { obterNoticias } from "./fakeRest";
-import {
-  CloseButton,
-  CardModal,
-  ContainerModal,
-  DescriptionModal,
-  ImageModal,
-  TituloModal,
-  CardNoticia,
-  DateCardNoticia,
-  DescriptionCardNoticia,
-  ImageCardNoticia,
-  TituloCardNoticia,
-  ContainerNoticias,
-  ListaNoticias,
-  TituloNoticias,
-  BotaoLeitura,
-  BotaoAssinar,
-  ContainerTexto,
-} from "./styled";
+import { CardNoticia } from "./CardNoticia";
+import { Modal } from "./ModalNormal";
+import { ModalPremium } from "./ModalPremium";
+import { stringFormatter, dateFormatter } from "./auxiliarFunctions";
+import { INoticiasNormalizadas } from "./types";
+import * as s from "./styled";
 
-export interface INoticiasNormalizadas {
-  id: number;
-  titulo: string;
-  description: string;
-  date: number | string;
-  premium: boolean;
-  image: string;
-  descriptionCurto?: string;
-}
+/**
+ * /
+ * - Mudando os types para somente um arquivo
+ * - Extraindo componentes Modal, Modal Premium e CardNoticias para seus próprios arquivos
+ * - Extraindo funções que formatam data e titulo
+ * - Mudando nome de variáveis para uma forma mais descritiva
+ *  */
 
 const Noticias = () => {
   const [noticias, setNoticias] = useState<INoticiasNormalizadas[]>([]);
   const [modal, setModal] = useState<INoticiasNormalizadas | null>(null);
+  
+  const obterData = async () => {
+    const resposta = await obterNoticias();
+    const data = resposta.map((noticia) => {
+
+      return {
+        id: noticia.id,
+        titulo: stringFormatter(noticia.titulo),
+        description: noticia.description,
+        date: `Faz ${dateFormatter(noticia.date)} minutos`,
+        premium: noticia.premium,
+        image: noticia.image,
+        descriptionCurto: noticia.description.substring(0, 100),
+      };
+    });
+
+    setNoticias(data);
+  };
 
   useEffect(() => {
-    const obterInformacoes = async () => {
-      const resposta = await obterNoticias();
-
-      const data = resposta.map((n) => {
-        const titulo = n.titulo
-          .split(" ")
-          .map((str) => {
-            return str.charAt(0).toUpperCase() + str.slice(1);
-          })
-          .join(" ");
-
-        const hora = new Date();
-        const minutosDecorrido = Math.floor(
-          (hora.getTime() - n.date.getTime()) / 60000
-        );
-
-        return {
-          id: n.id,
-          titulo,
-          description: n.description,
-          date: `Faz ${minutosDecorrido} minutos`,
-          premium: n.premium,
-          image: n.image,
-          descriptionCurto: n.description.substring(0, 100),
-        };
-      });
-
-      setNoticias(data);
-    };
-
-    obterInformacoes();
+    obterData();
   }, []);
 
   return (
-    <ContainerNoticias>
-      <TituloNoticias>Noticias dos Simpsons</TituloNoticias>
-      <ListaNoticias>
-        {noticias.map((n) => (
-          <CardNoticia>
-            <ImageCardNoticia src={n.image} />
-            <TituloCardNoticia>{n.titulo}</TituloCardNoticia>
-            <DateCardNoticia>{n.date}</DateCardNoticia>
-            <DescriptionCardNoticia>
-              {n.descriptionCurto}
-            </DescriptionCardNoticia>
-            <BotaoLeitura onClick={() => setModal(n)}>Ver más</BotaoLeitura>
-          </CardNoticia>
+    <s.ContainerNoticias>
+      <s.TituloNoticias>Noticias dos Simpsons</s.TituloNoticias>
+      <s.ListaNoticias>
+        {noticias.map((noticia) => (
+          <CardNoticia image={noticia.image} titulo={noticia.titulo} date={noticia.date}  descriptionCurto={noticia.descriptionCurto} setModal={() => setModal(noticia)} />
         ))}
         {modal ? (
           modal.premium ? (
-            <ContainerModal>
-              <CardModal>
-                <CloseButton onClick={() => setModal(null)}>
-                  <img src={Close} alt="close-button" />
-                </CloseButton>
-                <ImageModal src={AssinarImage} alt="mr-burns-excelent" />
-                <ContainerTexto>
-                  <TituloModal>Assine a nossa newsletter</TituloModal>
-                  <DescriptionModal>
-                    Assine nossa newsletter e receba novidades de nossos
-                    personagens favoritos
-                  </DescriptionModal>
-                  <BotaoAssinar
-                    onClick={() =>
-                      setTimeout(() => {
-                        alert("Suscripto!");
-                        setModal(null);
-                      }, 1000)
-                    }
-                  >
-                    Assinar
-                  </BotaoAssinar>
-                </ContainerTexto>
-              </CardModal>
-            </ContainerModal>
+           <ModalPremium 
+              setModal={() => setModal(null)}
+              close={Close}
+              assinarImage={AssinarImage}
+           />
           ) : (
-            <ContainerModal>
-              <CardModal>
-                <CloseButton onClick={() => setModal(null)}>
-                  <img src={Close} alt="close-button" />
-                </CloseButton>
-                <ImageModal src={modal.image} alt="news-image" />
-                <ContainerTexto>
-                  <TituloModal>{modal.titulo}</TituloModal>
-                  <DescriptionModal>{modal.description}</DescriptionModal>
-                </ContainerTexto>
-              </CardModal>
-            </ContainerModal>
+            <Modal 
+              setModal={() => setModal(null)}
+              close={Close}
+              image={modal.image}
+              titulo={modal.titulo}
+              description={modal.description}
+            />
           )
         ) : null}
-      </ListaNoticias>
-    </ContainerNoticias>
+      </s.ListaNoticias>
+    </s.ContainerNoticias>
   );
 };
 
